@@ -647,6 +647,47 @@ registry:
     assert set(config.registry_allowed) == {"fetch_customer", "search_docs"}
 
 
+@pytest.mark.parametrize(
+    "auto_value", ['"false"', '"true"', "1", "0", "[yes]", "{enabled: true}"]
+)
+def test_registry_auto_rejects_non_boolean(auto_value: str) -> None:
+    yaml_text = f"""
+tools:
+  demo: {{}}
+
+registry:
+  auto: {auto_value}
+"""
+    with pytest.raises(ConfigError, match=r"'registry\.auto' must be a boolean"):
+        load_config_from_string(yaml_text)
+
+
+def test_registry_auto_false_registers_nothing() -> None:
+    yaml_text = """
+tools:
+  demo: {}
+
+registry:
+  auto: false
+"""
+    config = load_config_from_string(yaml_text)
+    assert config.registry_allowed == []
+
+
+def test_registry_auto_preserves_explicit_allowed() -> None:
+    yaml_text = """
+tools:
+  demo: {}
+  other: {}
+
+registry:
+  auto: true
+  allowed: [demo]
+"""
+    config = load_config_from_string(yaml_text)
+    assert config.registry_allowed == ["demo"]
+
+
 def test_instrument_applies_tools_and_tasks() -> None:
     yaml_text = """
 action_ledger:
